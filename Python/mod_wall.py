@@ -8,13 +8,18 @@ rows = 8
 column_space = 0.1
 row_space =0.01;
 
+
+
 wall = bpy.data.objects.get("Wall Python")
 if wall:
-    
     start = wall.matrix_world @ wall.data.vertices[0].co
     end = wall.matrix_world @ wall.data.vertices[1].co
 
-mods = bpy.data.collections.get(mods_collection).objects[:]
+all_mods = bpy.data.collections.get(mods_collection).objects[:]
+mods =  [
+        obj for obj in all_mods
+        if obj.parent is None or obj.parent not in all_mods
+    ]
 print("test")
 
 # delete objects in wall collection
@@ -23,6 +28,9 @@ collection = bpy.data.collections.get(wall_collection)
 for o in collection.objects[:]:
     bpy.data.objects.remove(o, do_unlink=True)
     
+mods_children = {}
+for m in mods:
+    mods_children[m] = list(m.children_recursive) 
 
 x = start.x
 y = start.y -1
@@ -37,8 +45,17 @@ for i in range(8):
     while x < end.x:
         
         mod_type = random.randint(0, len(mods)-1)
+        
         new_mod = mods[mod_type].copy()
+        #new_mod = mods[mod_type].duplicate(linked=True)
+        
         bpy.data.collections["Wall Mods"].objects.link(new_mod)
+        childrens = mods_children[mods[mod_type]]
+        for m in childrens:
+            child = m.copy()
+            bpy.data.collections["Wall Mods"].objects.link(child)
+            child.parent = new_mod
+            child.matrix_parent_inverse = m.matrix_parent_inverse.copy()
         x = x + new_mod.dimensions.x/2;
         new_mod.location = (x, y ,z)
         x = x + new_mod.dimensions.x/2 +column_space
